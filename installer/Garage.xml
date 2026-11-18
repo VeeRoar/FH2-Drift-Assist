@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Garage>
+  <String key="61696" name="IDS_FD_Suspension_Name" en="Formula Drift suspension" zh="Formula Drift 漂移懸吊" />
+  <String key="61697" name="IDS_FD_Suspension_Description" en="Based on 16 Formula Drift cars, with spring and damping rates adapted to this car's axle loads. Preserves native chassis geometry. Includes adjustable suspension and 60-degree steering when equipped." zh="依前後軸負載調校的漂移彈簧與避震器，內側前輪的最大轉向角可達 60°。" />
+  <String key="20480" name="IDS_PS1_SLR_AngleKit" en="SLR DRIFT 74° ANGLE KITS" zh="SLR 74° 漂移轉向角套件" />
+  <String key="16320" name="IDS_PS1_SLR_AngleKit_Desc" en="Adjustable drift springs and dampers with up to 74° of inside front-wheel steering lock." zh="可調校的漂移彈簧與避震器，內側前輪的最大轉向角可達 74°。" />
+</Garage>
