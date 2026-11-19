@@ -76,7 +76,9 @@ static void clear_manual(void){
     ReleaseSRWLockExclusive(&manual_lock);
 }
 #include "visual_lock.h"
+#include "cockpit_sync.h"
 #include "wheel_lock.h"
+#include "cockpit_presentation.h"
 /* The native spring loader just used this same selected result row to read
    FrontSpringDamperPhysicsID and RearSpringDamperPhysicsID (FH2 1.0.0.64).
    Its integer getter takes a row index and an MSVC short UTF-8 string. */
@@ -244,8 +246,12 @@ static float correct_steering(float stick,float dt,AssistConfig c,void *expected
             }
             if(limit>0 && dt>0 && dt<=.1f && readmem(body+8,&measured,4) && isfinite(measured)){
                 ULONGLONG tick=GetTickCount64();
+                if(manual_body!=body || !manual_state.valid || tick-manual_tick>80){
+                    /* A resumed or reused vehicle needs a new completed wheel step. */
+                    (*wheel_binding((uintptr_t)body))->cockpit.valid=0;
+                }
                 if(manual_body!=body || tick-manual_tick>100)manual_state=(DirectRack){0};
-                manual_body=body; manual_tick=tick;
+                manual_body=body; manual_tick=tick; cockpit_player_car=car;
                 if(supported)
                     rack_update(&manual_state,stick,forward,lateral,out.yaw,state.slip_rate,geometry,limit,dt,measured*57.29578f,c);
                 else
@@ -399,7 +405,7 @@ static DWORD WINAPI setup(void* unused){
     }
     FH2Hook* suspension=api->hook_instruction(mod,"FD suspension steering only when equipped",base+0x10577d5,on_suspension,0);
     if(!suspension||!api->enable_hooks(mod,suspension))api->log(mod,"FD steering hook unavailable; native steering angles retained.");
-    api->log(mod,"v0.5.1: all-car steering with adjustable steering deadzone.");
+    install_cockpit_sync();
     LONG previous=-1;unsigned elapsed=0;
     for(;;){
         Sleep(1000);retry_save();
@@ -415,7 +421,7 @@ FH2MOD_EXPORT int fh2mod_init(const FH2ModApi* a){
                          a->add_translation && a->tr;
     chinese=supports_catalog?0:chinese_ui();
     FH2ModInfo info={0};
-    info.size=sizeof(info);info.name="FH2 Drift Assist";info.version="0.5.1";info.platform_version="2.6.0";
+    info.size=sizeof(info);info.name="FH2 Drift Assist";info.version="0.5.2";info.platform_version="2.6.0";
     info.description=menu_text(&Description);
     mod=api->register_mod(&info);if(!mod)return 1;
     if(supports_catalog){

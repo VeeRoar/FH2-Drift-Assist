@@ -53,6 +53,7 @@ static void retry_save(void){
     AcquireSRWLockExclusive(&lock);
     save_int(L"Enabled",config.enabled);
     save_int(L"ChaseCamera",camera_enabled);
+    save_int(L"CockpitSync",cockpit_enabled);
     for(size_t i=0;i<SLIDER_COUNT;i++)
         save_int(sliders[i].ini_key,(int)lroundf(*sliders[i].value*sliders[i].storage_scale));
     ReleaseSRWLockExclusive(&lock);
@@ -66,6 +67,9 @@ static void changed(void *user,const char *key,int value){
         save_int(L"Enabled",config.enabled);
     }else if(!strcmp(key,"ChaseCamera")){
         camera_enabled=!!value;save_int(L"ChaseCamera",camera_enabled);
+    }else if(!strcmp(key,"CockpitSync")){
+        InterlockedExchange(&cockpit_enabled,!!value);
+        save_int(L"CockpitSync",!!value);
     }
     ReleaseSRWLockExclusive(&lock);
 }
@@ -109,4 +113,6 @@ static void register_settings(void){
         api->add_setting(mod,&row);
     }
     add_toggle("ChaseCamera",&ChaseCameraLabel,&ChaseCameraHelp,camera_enabled);
+    cockpit_enabled=load_int(L"CockpitSync",1,0,1);
+    add_toggle("CockpitSync",&CockpitSyncLabel,&CockpitSyncHelp,cockpit_enabled);
 }

@@ -15,13 +15,13 @@ static const Text messages[]={
 #include "../src/menu_text.def"
 #undef DRIFT_MENU_TEXT
 };
-static FH2Setting rows[7];
+static FH2Setting rows[8];
 static int count,zh,official,translated;
 static const char *catalog,*description;
 static void *game(void){return NULL;}
 static void *code(uint32_t unused){(void)unused;return NULL;}
 static FH2Mod *reg(const FH2ModInfo *info){
-    assert(!strcmp(info->version,"0.5.1"));
+    assert(!strcmp(info->version,"0.5.2"));
     description=info->description;return (FH2Mod*)1;
 }
 static int language(FH2Mod *mod,const char *tag,const char *data,size_t size){
@@ -77,8 +77,8 @@ int main(int argc,char **argv){
     if(official){api.add_translation=language;api.tr=translate;api.set_mod_description=describe;}
     HMODULE dll=LoadLibraryA(argv[1]);assert(dll);
     int (*init)(const FH2ModApi*)=(void*)GetProcAddress(dll,"fh2mod_init");
-    assert(init && !init(&api) && count==7);
-    assert(translated==(official?15:0));check_text(description,"Description");
+    assert(init && !init(&api) && count==8);
+    assert(translated==(official?17:0));check_text(description,"Description");
     for(int i=0;i<count;i++){
         const char *key=!strcmp(rows[i].key,"FrontSlipDegrees")?"FrontSlip":rows[i].key;
         char label[80],help[80];snprintf(label,sizeof(label),"%sLabel",key);snprintf(help,sizeof(help),"%sHelp",key);
@@ -97,10 +97,13 @@ int main(int argc,char **argv){
         if(!strcmp(argv[4],"write"))s->on_slide(s->user,s->key,modified[i]);
     }
     assert(row("Enabled")->value==!custom && row("ChaseCamera")->value==!custom);
+    FH2Setting *cockpit=row("CockpitSync");
+    assert(cockpit->kind==FH2_SETTING_ON_OFF && cockpit->value==!custom && cockpit->on_change);
     if(!strcmp(argv[4],"write")){
         row("Enabled")->on_change(NULL,"Enabled",0);
         row("ChaseCamera")->on_change(NULL,"ChaseCamera",0);
+        cockpit->on_change(cockpit->user,cockpit->key,0);
     }
-    printf("PASS API %s %s %s: 7 localized settings, 15 texts and saved values\n",argv[3],argv[2],argv[4]);
+    printf("PASS API %s %s %s: 8 localized settings, 17 texts and saved values\n",argv[3],argv[2],argv[4]);
     return 0;
 }

@@ -51,9 +51,11 @@ def run(archive, mount, expected_plugin):
             assert strings(loose.read_bytes()) == expected, zip_path
         ini = az / "fh2-mods/FH2DriftAssist.ini"
         assert ini.read_bytes() == (package / "source/preset/FH2DriftAssist.ini").read_bytes()
-        ini.write_bytes(b"[DriftAssist]\r\nDeadzone=9\r\n")
+        assert b"CockpitSync=1" in ini.read_bytes().splitlines()
+        custom_preset = b"[DriftAssist]\r\nDeadzone=9\r\nCockpitSync=0\r\n"
+        ini.write_bytes(custom_preset)
         subprocess.run(command, check=True)
-        assert b"Deadzone=9" in ini.read_bytes() and len(list((az / "ModBackups").iterdir())) == 1
+        assert ini.read_bytes() == custom_preset and len(list((az / "ModBackups").iterdir())) == 1
 
         sql = (package / "source/src/drift_kits.sql").read_text(encoding="utf-8")
         db = sqlite3.connect(":memory:")

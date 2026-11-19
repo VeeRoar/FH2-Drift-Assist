@@ -10,6 +10,7 @@ The inspiration is **CarX Drift Racing Online 2**, particularly the way its arca
 
 - **Catch a large slide.** The assist estimates the front wheels’ direction of travel using the car's forward speed, lateral speed, yaw and front-axle geometry. As the angle closes it starts to unwind the countersteer. The aim is to let you stay on the throttle and catch the car without the assist itself throwing it into an opposite slide.
 - **Steer through centre.** Stick or steering-key input moves the physical front wheels, including at a standstill. You can reverse direction quickly during a transition. While the rear is sliding, your input adds to or takes away from the assisted angle. Releasing the controls lets the wheels follow that angle again.
+- **See the countersteer from the cockpit.** New in **0.5.2**, the steering wheel and the driver's hands follow the front-wheel angle that the assist actually applies to your car. You can see the driver catch a slide even with the stick centred or the steering keys released. An FH2 cockpit-view playtest confirmed that the wheel and hands move together. Each car keeps its own hand poses and steering animation. On the original 1977 Firebird Trans Am and 1971 Skyline 2000GT-R, the wheel rim turns about 90° each way. The suspension's 60° or 74° lock is measured at the inside front tyre.
 - **Keep control over crests.** When the car loses wheel contact or tips too far for a reliable ground estimate, the assist carries forward its last supported steering range. You can still steer in the air. This reduces the abrupt centring and front-wheel twitch that can otherwise show up over bumps or when landing.
 - **Switch cars or input devices.** The assist follows the player's current car. It accepts analogue stick input and the combined driving axis supplied by FH2 Mouse & Keyboard. Full steering-key input can still request the full available range with a stick deadzone enabled.
 - **Watch the rear move.** An optional drift chase camera moves the pivot forward in both near and far chase views, making it easier to read the rear of the car as it slides.
@@ -39,9 +40,11 @@ The mod creates missing kit entries when FH2 Mod Platform builds its working dat
 ## Install and drive
 
 1. Set up the dependencies above and launch FH2 once. Close the game and Azimuth.
-2. Extract **FH2-Drift-Assist-0.5.1-win-x64.zip** and run **Install.exe**. Select the folder containing `azimuth.exe`, then the FH2 **Mount** folder containing `AppxManifest.xml` and `media`.
+2. Extract **FH2-Drift-Assist-0.5.2-win-x64.zip** and run **Install.exe**. Select the folder containing `azimuth.exe`, then the FH2 **Mount** folder containing `AppxManifest.xml` and `media`.
 3. The installer deploys the assist and both kits together. It merges the garage names into local language tables and preserves an existing `FH2DriftAssist.ini`. New installations start with the preset below.
 4. Launch FH2 through Azimuth, fit either suspension in the garage, and open **Mods → FH2 Drift Assist** to adjust the steering. For a first drive, leave the preset as supplied and try catching a sustained slide before changing sliders.
+
+**Upgrading from 0.5.1.** Close FH2 and Azimuth, then run the 0.5.2 installer against the same two folders. It updates the plugin in place and preserves your steering settings. **Cockpit steering sync** starts enabled when the existing INI has no entry for it. You can switch it on or off under **Mods → FH2 Drift Assist → Cockpit steering sync**.
 
 ## In-game controls
 
@@ -53,11 +56,12 @@ The mod creates missing kit entries when FH2 Mod Platform builds its working dat
 | Steering release speed | 100% | 50–150%, in steps of 5%. Lower values give a gentler unwind when you release the stick or keys. |
 | Steering deadzone | 4% | 0–15%, in steps of 1%. Raise this if a resting stick steers slightly. |
 | Front slip window | 12° | 4–24°, in steps of 1°. A smaller window keeps the front wheels closer to their travel direction at speed. A larger window gives the driver more room. |
+| Cockpit steering sync | On | Follows applied front-wheel steering with the cockpit wheel and driver's hands. Switch off to use the game's original cockpit animation with the same drift-assist settings. |
 | Drift chase camera | On | Moves the chase-camera pivot forward. Can be switched independently. |
 
 **Removal.** Refit a standard suspension on cars you use and close Azimuth. Restore the files marked `REPLACED` from the timestamped backup in `Azimuth/ModBackups/FH2-Drift-Assist-*/`. Remove the listed `NEW` files that still belong to this installation. If another mod has since edited a garage table, keep the newer file and merge those changes. Restart so the platform can rebuild its working database.
 
-**Troubleshooting.** If the Mods page has no assist, check `fh2-mods/platform.log` for `[FH2 Drift Assist] 0.5.1 registered`. If the kits appear with missing names, check the selected FH2 Mount folder and Extra Options' media overrides. If only the keyboard fails, confirm FH2 Mouse & Keyboard is loaded and verify its steering bindings.
+**Troubleshooting.** If the Mods page has no assist, check `fh2-mods/platform.log` for `[FH2 Drift Assist] 0.5.2 registered`. To check cockpit sync, use the cockpit view, enable both **Drift assist** and **Cockpit steering sync**, and check that **Countersteer strength** is above 0%. If the kits appear with missing names, check the selected FH2 Mount folder and Extra Options' media overrides. If only the keyboard fails, confirm FH2 Mouse & Keyboard is loaded and verify its steering bindings.
 
 ## Source and credits
 

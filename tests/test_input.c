@@ -31,6 +31,70 @@ static void frames(int count,float stick,float merged){
         on_input(&early,NULL);late(merged,&car);solve();
     }
 }
+static const float original_cockpit_angle=-.314159f;
+static float expected_cockpit(float limit){
+    float inner=fabsf(wheels[0])>fabsf(wheels[1])?wheels[0]:wheels[1];
+    return inner/(limit*.01745329252f)*1.570796327f;
+}
+/* Seed all register lanes with sentinels, including the high lanes of xmm1.
+   Validate the real callback with its ABI at the retail presentation call. */
+static void check_cockpit(unsigned char *vehicle,float expected){
+    FH2Context context,original;
+    unsigned char car_snapshot[0x5000],physics_snapshot[0x2400];
+    memcpy(car_snapshot,vehicle,sizeof(car_snapshot));
+    memcpy(physics_snapshot,body-0x400,sizeof(physics_snapshot));
+    DirectRack rack=manual_state;
+    memset(&context,0x5a,sizeof(context));
+    context.r14=(uintptr_t)vehicle;
+    context.xmm[1].f[0]=original_cockpit_angle;
+    original=context;
+    present_cockpit(&context,NULL);
+    assert(fabsf(context.xmm[1].f[0]-expected)<.00002f);
+    context.xmm[1].f[0]=original_cockpit_angle;
+    assert(!memcmp(&context,&original,sizeof(context)));
+    /* The driver pose uses a separate callback with a normalized result
+       in xmm0. The game then samples the center at one-half. */
+    context.rbx=(uintptr_t)vehicle;
+    const float native_turn=.718f;
+    context.xmm[0].f[0]=native_turn;
+    original=context;
+    present_driver_turn(&context,NULL);
+    float turn=context.xmm[0].f[0];
+    float expected_turn=expected==original_cockpit_angle?native_turn:expected/1.570796327f;
+    assert(fabsf(turn-expected_turn)<.00002f);
+    context.xmm[0].f[0]=native_turn;
+    assert(!memcmp(&context,&original,sizeof(context)));
+    assert(!memcmp(&rack,&manual_state,sizeof(rack)));
+    assert(!memcmp(car_snapshot,vehicle,sizeof(car_snapshot)));
+    assert(!memcmp(physics_snapshot,body-0x400,sizeof(physics_snapshot)));
+}
+static void check_cockpit_samples(void){
+    WheelBinding *binding=*wheel_binding((uintptr_t)body);
+    assert(binding && binding->cockpit.valid);
+    float left=wheels[0],right=wheels[1];
+    assert(binding->cockpit.left==left && binding->cockpit.right==right);
+    for(int mode=0;mode<2;mode++){
+        changed(NULL,"CockpitSync",mode);
+        check_cockpit(car,mode?expected_cockpit(binding->limit):original_cockpit_angle);
+    }
+    /* The latest input can still be valid after the last physics sample
+       has expired. Expire each clock separately without sleeping. */
+    binding->cockpit.tick=GetTickCount64()-150;
+    check_cockpit(car,original_cockpit_angle);
+    cockpit_capture(&binding->cockpit,left,right);
+    ULONGLONG tick=manual_tick;
+    manual_tick=GetTickCount64()-150;
+    check_cockpit(car,original_cockpit_angle);
+    manual_tick=tick;
+    const float invalid[][2]={{NAN,right},{left,INFINITY},{-.25f,.25f},{0,2}};
+    for(size_t i=0;i<sizeof(invalid)/sizeof(*invalid);i++){
+        cockpit_capture(&binding->cockpit,invalid[i][0],invalid[i][1]);
+        check_cockpit(car,original_cockpit_angle);
+    }
+    cockpit_capture(&binding->cockpit,left,right);
+    check_cockpit(car,expected_cockpit(binding->limit));
+    puts("PASS cockpit A/B, original registers and car state, expired input and physics samples, invalid readings");
+}
 static void assemble_car(unsigned char *instance,int id,int level,float limit,float filtered){
     unsigned char spec[128]={0};
     putf(spec+0x5c,limit);
@@ -99,10 +163,12 @@ static void verify_stops(int id,int level,float limit,float filtered){
         assert(fabsf(fmaxf(wheels[0]*side,wheels[1]*side)-rad*limit)<.001f);
         assert(wheels[0]*side>0 && wheels[1]*side>0);
         assert(!memcmp(body+0x11c8,body+0x11cc,4) && !memcmp(body+0x1678,body+0x167c,4));
+        check_cockpit(car,side*1.570796327f);
     }
     putf(body-0x350,7);putf(body-0x350+8,16);
     frames(60,0,0);
     assert(manual_state.neutral>20 && wheels[0]>.3f && wheels[1]>.3f);
+    check_cockpit(car,expected_cockpit(limit));
     putf(body-0x350,0);putf(body-0x350+8,0);
 }
 int main(int argc,char **argv){
@@ -126,7 +192,9 @@ int main(int argc,char **argv){
 
     frames(30,0,-1);assert(wheels[0]<-1 && wheels[1]<-1);
     frames(30,0,1);assert(wheels[0]>1 && wheels[1]>1);
+    check_cockpit_samples();
     frames(60,0,0);assert(fabsf(wheels[0])<.001f && fabsf(wheels[1])<.001f);
+    check_cockpit(car,0);
     putp(manager+0xab28,NULL);frames(30,0,-1);assert(wheels[0]<-1 && wheels[1]<-1);
     puts("PASS keyboard alone: left, reversal, release and no selected pad");
 
@@ -152,10 +220,12 @@ int main(int argc,char **argv){
     putf(body-0x350,12.856f);putf(body-0x350+8,15.321f);
     frames(90,0,0);float aligned=manual_state.target;
     assert(aligned>38 && aligned<42 && wheels[0]>.5f && wheels[1]>.5f);
+    check_cockpit(car,expected_cockpit(74));
     frames(60,0,-1);assert(manual_state.target>28 && manual_state.target<31 && wheels[0]>.48f && wheels[1]>.48f);
     frames(60,0,1);assert(manual_state.target>50 && manual_state.target<55 && wheels[0]>.72f && wheels[1]>.72f);
     frames(60,0,0);assert(fabsf(manual_state.target-aligned)<.01f);
     putf(body-0x350,-12.856f);frames(90,0,0);assert(fabsf(manual_state.target+aligned)<.05f && wheels[0]<-.5f && wheels[1]<-.5f);
+    check_cockpit(car,expected_cockpit(74));
     puts("PASS 40-degree drift: unassisted stick at zero, held key both directions, release and mirrored slide reach both wheels");
 
     mouse_loaded=1;
@@ -175,8 +245,10 @@ int main(int argc,char **argv){
     assert(manual_state.valid && fabsf(manual_state.angle-landing)<560.f/60+.01f);
     puts("PASS two/one/zero-wheel contact, prolonged jump, mid-air input and bounded landing on both front wheels");
     contacts=4;frames(30,0,1);assert(manual_state.valid);
-    sim[0x28]=1;frames(3,0,-1);assert(!manual_state.valid);sim[0x28]=0;
+    sim[0x28]=1;frames(3,0,-1);assert(!manual_state.valid);
+    check_cockpit(car,original_cockpit_angle);sim[0x28]=0;
     config.enabled=0;frames(3,0,-1);assert(!manual_state.valid);
+    check_cockpit(car,original_cockpit_angle);
     config.enabled=1;assemble(body,NAN,0);frames(3,0,-1);assert(!manual_state.valid);
     puts("PASS pause, disabled assist and invalid steering data");
 
@@ -200,13 +272,17 @@ int main(int argc,char **argv){
     memcpy(other,car,0x5000);putp(other+0x4c08,second);
     assemble(second,36,14);
     frames(30,0,-1);assert(manual_body==first);
+    check_cockpit(other,original_cockpit_angle);
     body=second;solver.rdi=(uintptr_t)body;expect_native();
     render.rsi=(uintptr_t)other;visual_route(&render,NULL);assert(!render.rflags);
     car=other;frames(30,0,1);assert(manual_body==second && manual_state.angle>35.9f);
+    check_cockpit(first_car,original_cockpit_angle);
+    check_cockpit(other,1.570796327f);
     render.rsi=(uintptr_t)first_car;visual_route(&render,NULL);assert(!render.rflags);
     body=first;solver.rdi=(uintptr_t)body;expect_native();
     FH2Context destroy={0};destroy.rcx=(uintptr_t)second-0x3a0;
     unbind_wheels(&destroy,NULL);assert(!*wheel_binding((uintptr_t)second) && !manual_state.valid);
+    check_cockpit(other,original_cockpit_angle);
     car=first_car;frames(30,0,-1);assert(manual_body==first && manual_state.angle<-53);
     puts("PASS simultaneous player and AI, garage switch, reused physics and vehicle release");
 

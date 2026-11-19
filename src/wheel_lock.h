@@ -9,6 +9,7 @@ typedef struct WheelBinding {
     int angle_kit;
     struct WheelBinding *next;
     volatile LONG geometry_mm; /* low 16 bits wheelbase, high 16 bits track */
+    CockpitWheels cockpit;
 } WheelBinding;
 /* Buckets hold live physics instances. Collisions have no effect on car eligibility. */
 static WheelBinding *wheel_bindings[64];
@@ -65,6 +66,7 @@ static void bind_wheels(FH2Context *ctx,void *unused){
             (*link)->steering=steering;
             (*link)->limit=limits[0];
             (*link)->geometry_mm=0;
+            (*link)->cockpit.valid=0;
             (*link)->angle_kit=(limits[0]==74.0f && limits[1]==SLR_FILTERED_LOCK) ||
                                 (limits[0]==60.0f && limits[1]==nextafterf(60.0f,0.0f));
         }
@@ -107,6 +109,8 @@ static void set_wheel_angles(FH2Context *ctx,void *unused){
         float outer=atan2f(sinf(angle),cosf(angle)+0.25f*fabsf(track/wheelbase)*sinf(angle));
         ((float*)wheels[inner])[channel]=copysignf(angle,request);
         ((float*)wheels[1-inner])[channel]=copysignf(outer,request);
+        if(channel==0 && adjustment.valid)
+            cockpit_capture(&node->cockpit,((float*)wheels[0])[0],((float*)wheels[1])[0]);
         if(channel==0 && angle>73.5f*rad){
             LONG bit=request<0?1:2;
             if(!(InterlockedOr(&observed_directions,bit)&bit)){

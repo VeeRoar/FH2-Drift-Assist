@@ -12,4 +12,6 @@ DRIFT_MENU_TEXT(DeadzoneHelp, "Ignores small steering inputs near centre. Raise 
 DRIFT_MENU_TEXT(FrontSlipLabel, "Front slip window (deg)", "前輪滑移容許角（度）")
 DRIFT_MENU_TEXT(FrontSlipHelp, "At speed, a smaller angle keeps the front wheels closer to their direction of travel. A larger angle gives you more steering room. Default 12 degrees.", "車速提高後，角度越小，前輪越貼近輪胎的行進方向；角度越大，手動轉向空間越多。預設 12 度。")
 DRIFT_MENU_TEXT(ChaseCameraLabel, "Drift chase camera", "漂移追車鏡頭")
+DRIFT_MENU_TEXT(CockpitSyncLabel, "Cockpit steering sync", "座艙轉向同步")
+DRIFT_MENU_TEXT(CockpitSyncHelp, "Match the driver's steering animation to the actual front wheels during drift assist.", "漂移輔助啟用時，讓駕駛的轉向動作跟隨前輪實際轉角。")
 DRIFT_MENU_TEXT(ChaseCameraHelp, "Moves the chase camera pivot toward the front axle so the rear of the car swings across the view. Applies to both chase views.", "將追車鏡頭的旋轉中心移向前軸，讓車尾擺動更明顯。近、遠兩種追車視角皆適用。")
