@@ -31,6 +31,25 @@ internal static class Installer {
                Directory.Exists(Path.Combine(path, "media", "stripped", "stringtables"));
     }
 
+    static string QuotePath(string path) {
+        // Windows paths cannot contain double quotes. Escape a trailing slash
+        // so a volume root also survives native argument parsing.
+        string trimmed = path.TrimEnd('\\');
+        return "\"" + trimmed + new string('\\', 2 * (path.Length - trimmed.Length)) + "\"";
+    }
+
+    static void InstallAnimation(string setup, string az, string mount) {
+        var start = new ProcessStartInfo(setup,
+            "-Game FH2 -Azimuth " + QuotePath(az) + " -Mount " + QuotePath(mount));
+        start.UseShellExecute = false;
+        start.WorkingDirectory = Path.GetDirectoryName(setup);
+        using (var process = Process.Start(start)) {
+            process.WaitForExit();
+            if (process.ExitCode != 0)
+                throw new IOException("Drift assist and suspension setup completed. Animation setup stopped. Check its message above and run Install.exe again. / 漂移輔助與懸吊已就緒；方向盤動畫安裝中止。請查看上方訊息後重新執行 Install.exe。");
+        }
+    }
+
     static byte[] ReadTable(string mount, string lang) {
         foreach (string layer in new[] {"mediaoverride", "mediapc", "media"}) {
             string dir = Path.Combine(mount, layer, "stripped", "stringtables");
@@ -152,13 +171,20 @@ internal static class Installer {
             if (!interactive && paths.Length != 2) throw new ArgumentException("Install.exe [--check] AZIMUTH_FOLDER FH2_MOUNT");
             string az = Path.GetFullPath(interactive ? SelectFolder("Select the Azimuth folder (azimuth.exe) / 選擇 Azimuth 資料夾") : paths[0]);
             string mount = Path.GetFullPath(interactive ? SelectFolder("Select the Forza Horizon 2 Mount folder / 選擇 FH2 的 Mount 資料夾") : paths[1]);
+            if (!IsMount(mount) && IsMount(Path.Combine(mount, "Mount"))) mount = Path.Combine(mount, "Mount");
+            string setup = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Animation", "AnimationSetup.exe");
+            if (!File.Exists(setup)) throw new FileNotFoundException("Extract the complete ZIP before running Install.exe. / 請先完整解壓縮 ZIP，再執行 Install.exe。", setup);
             using (var mutex = new Mutex(false, @"Local\FH2DriftAssist051Installer")) {
                 bool locked;
                 try { locked = mutex.WaitOne(0); } catch (AbandonedMutexException) { locked = true; }
                 if (!locked) throw new IOException("Another installation is running.");
-                try { Install(az, mount, args.Contains("--check")); } finally { mutex.ReleaseMutex(); }
+                try {
+                    bool check = args.Contains("--check");
+                    Install(az, mount, check);
+                    if (!check) InstallAnimation(setup, az, mount);
+                } finally { mutex.ReleaseMutex(); }
             }
-            if (interactive) MessageBox.Show("Drift assist and both kits are installed. / 漂移輔助與兩套懸吊已安裝。");
+            if (interactive) MessageBox.Show("Setup complete. Use the new FH2 launch shortcut to check for new cars before playing. / 安裝完成。請使用新的 FH2 啟動捷徑，在遊戲啟動前檢查新增車輛。");
             return 0;
         } catch (OperationCanceledException) { return 2; }
         catch (Exception ex) {

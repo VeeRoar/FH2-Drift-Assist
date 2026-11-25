@@ -1,4 +1,4 @@
-# FH2 漂移輔助與漂移懸吊套件
+# FH2 漂移輔助、漂移懸吊與座艙方向盤動畫
 
 [English](README.md)
 
@@ -9,8 +9,8 @@
 ## 開起來有什麼不同
 
 - **大角度接車**　輔助會根據縱向車速、橫向滑動、車身旋轉與前軸幾何，估算前輪的行進方向。側滑角開始收小時，反打也跟著收回，減少持續補油時因方向收得不合時機而甩向另一邊的情況。
-- **快速換邊**　推動搖桿或按下方向鍵時，實際前輪會快速轉向，原地也能看見效果。漂移中可以手動加深或減少反打，換邊時能順暢通過中央。鬆手後，前輪會跟隨輔助角度回盤。
-- **從座艙看見反打**　**0.5.2** 新增「座艙轉向同步」。當輔助替目前駕駛的車輛反打，座艙方向盤和駕駛的雙手會跟隨實際前輪轉角。即使搖桿在中央或已放開方向鍵，也看得見駕駛接住車尾。這項效果已由玩家在 FH2 裡試駕確認。各車保留自己的握姿與動畫行程。原版 1977 Firebird Trans Am 與 1971 Skyline 2000GT-R 的座艙方向盤向左右各轉約 90°，懸吊標示的 60° 與 74° 則是內側前輪的最大轉角。
+- **停車時微調，漂移時快速換邊**　停車或慢行時，前輪會依照搖桿推幅漸漸轉向。以預設值及 74° 套件在 60 Hz 測試，搖桿推四分之一約 0.15 秒到達目標角度的一半，原地推滿約 0.53 秒到達目標的九成。滑動時可快速反打、順暢通過中央。
+- **從座艙看見反打**　座艙方向盤與雙手跟隨前輪實際轉角。新增的 FH6 動作會依每輛相容車輛原來的握點調整，包含雙手握在輪圈較高處的車型。一般圓形方向盤左右各約 270°（全行程約 540°），相容的軛式方向盤各約 140°。懸吊標示的 60° 與 74° 是內側前輪的最大轉角。
 - **騰空與顛簸路面**　當輪胎接地不足，或車身傾斜到難以可靠估算路面方向時，輔助會沿用最後一次穩定接地的轉向範圍。騰空時仍可手動操作，減少過坡與落地時突然回正或抽動。
 - **支援換車、手把及鍵盤**　輔助會跟隨目前駕駛的車輛。手把保留類比輸入，鍵盤可搭配 FH2 Mouse & Keyboard 的轉向按鍵。調高搖桿死區後，方向鍵仍能打到當下允許的最大角度。
 - **追車鏡頭**　可將近、遠兩個追車視角的旋轉中心前移，更容易從畫面觀察車尾的擺動幅度。
@@ -36,15 +36,19 @@
 | 模組平台 | **FH2 Mod Platform 2.9.0**（API 10），負責載入模組、更新資料庫與顯示雙語選單。[官方版本](https://github.com/Trinculo54/fh2-mod-platform/releases/tag/v2.9.0) |
 | 車庫名稱 | 測試環境使用 **Extra Options 0.4.4 的 Azimuth 版**，並設定 `EnableMediaOverrides=1`，讓遊戲讀取合併後的名稱。[官方下載](https://github.com/RokkuDayo/ForzaHorizon2_ExtraOptions/releases) |
 | 鍵盤駕駛 | 使用鍵盤的玩家請安裝 **FH2 Mouse & Keyboard 1.3.0**。使用手把可直接操作。[官方版本](https://github.com/qiangqiang101/FH2MouseKeyboard/releases/tag/1.3.0) |
+| 動畫來源 | 已安裝的 **Forza Horizon 6**，須含原版 `Content/media/animation.zip` 和 `Content/media/cars`。安裝程式會在你的電腦讀取 FH6 動作，配合各車原來的 FH2 握點產生動畫。 |
+| 動畫工具 | **64 位元 Python 3.10 或以上與 NumPy**（使用 Python 3.12 測試）、**Forza Mod Tool** 的 `forzatech_acl.dll`、**ForzaTechStudio** 的 `granny2_x64.dll` 和 `xcompress64.dll`。使用 Python 3.12 可用 `py -3.12 -m pip install numpy` 安裝 NumPy。[Forza Mod Tool v1.3.0.7](https://github.com/HTTPJXRDN/Forza-Mod-Tool/releases/tag/ForzaModToolV1.3.0.7) · [ForzaTechStudio Native](https://github.com/D3FEKT/ForzaTechStudio/tree/Main/ForzaTechStudio/Native) |
 
 ## 安裝與第一次試駕
 
 1. 裝好上述工具，先透過 Azimuth 啟動一次 FH2，再完全退出遊戲與 Azimuth。
-2. 解壓縮 **FH2-Drift-Assist-0.5.2-win-x64.zip**，執行 **Install.exe**。先選含有 `azimuth.exe` 的資料夾，再選 FH2 裡面含有 `AppxManifest.xml` 與 `media` 的 **Mount** 資料夾。
-3. 安裝程式會一併裝上漂移輔助、兩套懸吊，並合併車庫名稱。全新安裝套用下表的預設值，升級安裝則保留現有的 `FH2DriftAssist.ini`。
-4. 透過 Azimuth 啟動 FH2，在車庫裝上其中一套懸吊。需要微調時，開啟 **Mods → FH2 Drift Assist**。初次試駕可先沿用預設值，試一次持續補油的大角度漂移，再依手感調整。
+2. 完整解壓縮 **FH2-Drift-Assist-0.6.0-win-x64.zip**，執行 **Install.exe**。先選含有 `azimuth.exe` 的資料夾，再選 FH2 裡面含有 `AppxManifest.xml` 與 `media` 的 **Mount** 資料夾。
+3. 漂移輔助、兩套懸吊與車庫名稱安裝後，選擇 FH6 的 `animation.zip` 和上表的三個 DLL。如果畫面要求指定 Python，請選已安裝 NumPy 的 64 位元 `python.exe`。首次轉換需要時間，請等掃描完成，並保留所選工具的位置。
+4. 往後從 Azimuth 資料夾內的 **Play FH2 (Drift Assist).cmd** 啟動，可將這個檔案建立桌面捷徑。它會先檢查新增或更換的車輛，為相容車輛配上動畫，再開啟 Azimuth。進入車庫後裝上其中一套懸吊，可於 **Mods → FH2 Drift Assist** 微調手感。
 
-**從 0.5.1 升級**　完全退出 FH2 與 Azimuth，執行 0.5.2 安裝程式，選擇上次安裝的兩個資料夾即可。安裝程式會更新外掛並保留既有的轉向設定。舊設定檔若沒有「座艙轉向同步」這一項，預設為開啟。可在 **Mods → FH2 Drift Assist → 座艙轉向同步** 隨時切換。
+**升級既有版本**　選擇上次安裝的兩個資料夾即可，既有的 `FH2DriftAssist.ini` 設定會保留。0.6.0 整合包沿用實際試駕滿意的 **0.5.2-arcade1** 轉向外掛，遊戲選單會顯示這個元件版號。
+
+**日後新車**　每次使用上述啟動檔都會檢查 `media`、已啟用的 Extra Options 車包、`mediapc` 及 `mediaoverride`。車包必須有原生 `scene/Drivers/default/leftRightTurn.gr2`、方向盤軌道及相容的駕駛骨架，才可套用新動作。缺少該檔案的車會沿用原有表現。個別車包損壞、骨架不相容，或其他工具改過輸出動畫時，可在 Azimuth 的 `DriftAssistAnimation/FH2/last-scan.json` 查閱原因。直接開 `azimuth.exe` 會略過掃描。懸吊則由模組平台在重建資料庫時補齊。
 
 ## 遊戲內設定
 
@@ -56,11 +60,13 @@
 | 鬆手回盤速度 | 100% | 50–150%，每格 5%。鬆開按鍵或搖桿時，調低可讓前輪更柔和地回到輔助角度。 |
 | 轉向中央死區 | 4% | 0–15%，每格 1%。放開搖桿後仍有輕微偏移時可調高。 |
 | 前輪滑移容許角 | 12° | 4–24°，每格 1°。調小會讓前輪在高速時更貼近行進方向，調大則增加手動轉向空間。 |
-| 座艙轉向同步 | 開啟 | 讓座艙方向盤和駕駛雙手跟隨實際前輪轉角。關閉可使用遊戲原有的座艙動畫，並沿用同一套漂移輔助設定。 |
+| 座艙轉向同步 | 開啟 | 座艙方向盤及駕駛雙手跟隨實際前輪轉角。關閉後，遊戲會改用原有的輸入方式控制座艙動作，已安裝的動作檔案仍然生效。 |
 | 漂移追車鏡頭 | 開啟 | 近、遠追車視角的旋轉中心前移，可獨立開關。 |
 
-**移除。** 先替常用車換回原有懸吊，再退出 Azimuth。開啟 Azimuth 資料夾裡 `ModBackups/FH2-Drift-Assist-日期時間/` 的 `changes.txt`。將標為 `REPLACED` 的檔案從備份還原，標為 `NEW` 且仍屬於這次安裝的檔案可移除。若其他模組後來也修改過同一份車庫文字，請保留新版並合併其變更。重新啟動後平台會重建工作資料庫。
+**只想使用懸吊**　到 **Mods → FH2 Drift Assist** 關閉「漂移輔助」，已載入的外掛仍會提供兩套車庫升級。
 
-**排查。** 選單找不到輔助時，可在 `fh2-mods/platform.log` 搜尋 `[FH2 Drift Assist] 0.5.2 registered`。要確認座艙同步，請切換至座艙視角，開啟「漂移輔助」與「座艙轉向同步」，並確認「自動反打強度」高於 0%。若能看到懸吊但缺少名稱，請核對安裝時選的 Mount 與 Extra Options 的覆寫設定。若只有鍵盤無法轉向，請確認 FH2 Mouse & Keyboard 已載入並檢查按鍵綁定。
+**移除**　先替常用車換回原有懸吊，再退出 Azimuth。在解壓縮資料夾的命令提示字元執行 `Animation\AnimationSetup.exe -Game FH2 -Azimuth "你的 Azimuth 資料夾" -Mount "你的 FH2 Mount" -Uninstall`，可將動畫還原至這次安裝之前，並移除啟動捷徑。若動畫已由其他工具修改，會保留並列出檔案。開啟 Azimuth 資料夾裡 `ModBackups/FH2-Drift-Assist-日期時間/` 的 `changes.txt`，將標為 `REPLACED` 的檔案從備份還原，標為 `NEW` 且仍屬於這次安裝的檔案可移除。若其他模組後來也修改過同一份車庫文字，請保留新版並合併其變更。重新啟動後平台會重建工作資料庫。
+
+**排查**　選單找不到輔助時，可在 `fh2-mods/platform.log` 搜尋 `FH2 Drift Assist`。要確認座艙同步，請切換至座艙視角，開啟「漂移輔助」與「座艙轉向同步」，並確認「自動反打強度」高於 0%。若能看到懸吊但缺少名稱，請核對安裝時選的 Mount 與 Extra Options 的覆寫設定。若只有鍵盤無法轉向，請確認 FH2 Mouse & Keyboard 已載入並檢查按鍵綁定。
 
 轉向設計也參考了 Adam D. 的 Assetto Corsa Advanced Gamepad Assist。發行包的 `source/` 內附對應原始碼。詳細授權與致謝見 [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md)。

@@ -1,19 +1,22 @@
-# FH2 Drift Assist & Drift Suspension Kits 0.5.2
+# FH2 Drift Assist 0.6.0
 
-**The cockpit wheel and the driver's hands now follow the assisted front wheels.** In cockpit view you can see the driver countersteer when you release the stick or steering keys, then unwind as the slide closes. A player confirmed the effect in FH2. The mod uses each car's own steering animation. The stock 1977 Firebird Trans Am and 1971 Skyline 2000GT-R both have about 90° of cockpit wheel travel on either side of centre.
+Forza Horizon 2 on Windows x64 through Azimuth. This bundle combines the playtested CarX-inspired steering controller, both drift suspensions, and a longer cockpit steering animation fitted to each compatible car.
 
-**Cockpit steering sync** is on by default. You can toggle it independently under **Mods → FH2 Drift Assist → Cockpit steering sync**. The same menu also includes countersteer strength, steering input and release speeds, steering deadzone, front slip window, the main assist switch and the chase camera.
+- Parking and low-speed stick inputs build progressively. At drift speed you can still countersteer through centre and unwind as the car straightens. The package includes the same 0.5.2-arcade1 steering component used for the driving tests.
+- Fit Formula Drift suspension for up to 60° of inside front-wheel lock or SLR DRIFT 74° ANGLE KITS for up to 74°. Both upgrades are registered for compatible add-on cars when FH2 Mod Platform rebuilds its database.
+- The driver’s hands follow the applied front-wheel angle. Setup fits a local FH6 steering motion to the car’s original grip. A round wheel travels approximately 540° from lock to lock. Recognized yokes use a shorter 280° sweep.
+- Start **Play FH2 (Drift Assist).cmd** from your Azimuth folder after adding a car. Each launch checks for changed or new vehicles before opening Azimuth. A compatible default driver clip and steering rig are required. See `DriftAssistAnimation/FH2/last-scan.json` for cars the scanner skipped.
 
-**One download includes the drift assist and both suspension kits.** Fit either the Formula Drift suspension (up to 60° of inside front-wheel lock) or SLR DRIFT 74° ANGLE KITS for the steering range the assist was tuned around. Compatible add-on cars get both options when the mod platform rebuilds its database. The steering was inspired by **CarX Drift Racing Online 2**. In the creator's FH2 playtesting, catching and unwinding a deep slide with either kit felt very close to CarX.
+## Install or upgrade
 
-### Install or upgrade on Windows x64
+1. Set up FH2 Xbox One build **1.0.0.64**, **Azimuth**, **FH2 Mod Platform**, and **Extra Options** with `EnableMediaOverrides=1`. For keyboard driving, install **FH2 Mouse & Keyboard**. Start FH2 once, then close the game and Azimuth.
+2. For cockpit animation, have an installed copy of **FH6**, **64-bit Python with NumPy**, `forzatech_acl.dll` from Forza Mod Tool, and `granny2_x64.dll` and `xcompress64.dll` from ForzaTechStudio ready. [Forza Mod Tool v1.3.0.7](https://github.com/HTTPJXRDN/Forza-Mod-Tool/releases/tag/ForzaModToolV1.3.0.7) · [ForzaTechStudio Native](https://github.com/D3FEKT/ForzaTechStudio/tree/Main/ForzaTechStudio/Native)
+3. Download and fully extract **FH2-Drift-Assist-0.6.0-win-x64.zip**. Run **Install.exe**, select Azimuth and the FH2 Mount, then select the requested local animation files. Existing steering settings are preserved. Use the new launch file, select a car and equip either kit under **Platform and Handling → Springs and Dampers**.
 
-1. Set up Xbox One FH2 build **1.0.0.64**, **Azimuth 1.0.4**, **FH2 Mod Platform 2.9.0** and **Extra Options 0.4.4** with `EnableMediaOverrides=1`. For keyboard driving, add **FH2 Mouse & Keyboard 1.3.0**. Launch FH2 once and close the game and Azimuth.
-2. Download and extract **FH2-Drift-Assist-0.5.2-win-x64.zip** from the release assets. Run **Install.exe**. Select the folder containing `azimuth.exe`, then the FH2 **Mount** folder containing `AppxManifest.xml` and `media`. When upgrading from 0.5.1, select your existing folders. The installer preserves `FH2DriftAssist.ini`. A missing cockpit-sync setting defaults to on.
-3. Start FH2 and fit one kit under **Platform and Handling → Springs and Dampers**. The ZIP includes both installation guides, source and licences. For links to the required tools, see the [English guide](https://github.com/VeeRoar/FH2-Drift-Assist/blob/v0.5.2/README.md).
+[English installation guide](https://github.com/VeeRoar/FH2-Drift-Assist/blob/v0.6.0/README.md) · [繁體中文安裝指南](https://github.com/VeeRoar/FH2-Drift-Assist/blob/v0.6.0/README.zh-Hant.md)
 
-### 繁體中文
+## 繁體中文
 
-**0.5.2 新增座艙轉向同步，預設開啟。** 玩家已在 FH2 試駕確認，座艙方向盤與駕駛雙手會跟隨實際前輪反打及回盤。各車沿用自己的握姿與原生動畫行程。可在 **Mods → FH2 Drift Assist → 座艙轉向同步** 獨立切換。
+0.6.0 整合包收錄低速漸進的漂移輔助、兩款漂移懸吊和依原車握點調整的 FH6 座艙動畫。漂移手感的靈感來自 CarX Drift Racing Online 2。依製作者試駕，搭配漂移懸吊後，在大角度持續補油、反打及接住車尾時，手感已相當接近 CarX。
 
-漂移輔助、Formula Drift 60° 漂移懸吊與 SLR 74° 漂移轉向角套件都在同一份下載內。套件角度是內側前輪的上限。從 0.5.1 升級時，請完全退出遊戲與 Azimuth，執行新版 **Install.exe** 並選擇原來的兩個資料夾。安裝程式會保留既有設定。啟動 FH2 後，可在 **底盤與操控 → 彈簧與阻尼** 裝上任一套件。[完整安裝步驟與依賴工具](https://github.com/VeeRoar/FH2-Drift-Assist/blob/v0.5.2/README.zh-Hant.md)
+完全退出遊戲與 Azimuth，解壓縮整個 ZIP 後執行 **Install.exe**，選取 Azimuth、FH2 Mount 及上述本機動畫來源。既有設定會保留。此後使用 Azimuth 資料夾內的 **Play FH2 (Drift Assist).cmd** 啟動，會在進入遊戲前掃描新增或更換的相容車包。一般圓形方向盤左右各約 270°，60° 與 74° 則分別是兩款懸吊的內側前輪轉角上限。

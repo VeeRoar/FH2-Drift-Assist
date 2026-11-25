@@ -1,5 +1,6 @@
 """Exercise the extracted release against a temporary copy of real FH2 garage tables."""
 import hashlib
+import os
 from pathlib import Path
 import shutil
 import sqlite3
@@ -28,6 +29,24 @@ def run(archive, mount, expected_plugin):
         package = root / "release"
         with ZipFile(archive) as z:
             z.extractall(package)
+        # Use an isolated animation-setup probe to test the parent installer's
+        # native process boundary, arguments and failure propagation. Per-car
+        # writes are exercised separately by test_scan_fh2.py.
+        setup = package / "Animation/AnimationSetup.exe"
+        assert setup.is_file() and (setup.parent / "converter/animator.py").is_file()
+        compiler = Path(os.environ["WINDIR"]) / "Microsoft.NET/Framework64/v4.0.30319/csc.exe"
+        probe = root / "Probe.cs"
+        probe.write_text("""
+using System;
+using System.IO;
+class Probe {
+    static int Main(string[] args) {
+        File.WriteAllLines(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "received.txt"), args);
+        return Environment.GetEnvironmentVariable("FH2_TEST_STOP") == "1" ? 3 : 0;
+    }
+}
+""", encoding="utf8")
+        subprocess.run([str(compiler), "/nologo", "/platform:x64", "/out:" + str(setup), str(probe)], check=True)
         az = root / "launcher"
         az.mkdir()
         (az / "azimuth.exe").touch()
@@ -39,6 +58,8 @@ def run(archive, mount, expected_plugin):
         subprocess.run([*command, "--check"], check=True)
         assert not (az / "fh2-mods").exists()
         subprocess.run(command, check=True)
+        assert (setup.parent / "received.txt").read_text(encoding="utf-8-sig").splitlines() == [
+            "-Game", "FH2", "-Azimuth", str(az), "-Mount", str(game)]
         assert hashlib.sha256((az / "fh2-mods/FH2DriftAssist.dll").read_bytes()).digest() == digest
         rules = ET.parse(package / "source/installer/Garage.xml").getroot()
         for zip_path in stock.glob("*.zip"):
@@ -55,6 +76,8 @@ def run(archive, mount, expected_plugin):
         custom_preset = b"[DriftAssist]\r\nDeadzone=9\r\nCockpitSync=0\r\n"
         ini.write_bytes(custom_preset)
         subprocess.run(command, check=True)
+        stopped = subprocess.run(command, env={**os.environ, "FH2_TEST_STOP": "1"}, capture_output=True)
+        assert stopped.returncode != 0 and b"Animation setup stopped" in stopped.stderr
         assert ini.read_bytes() == custom_preset and len(list((az / "ModBackups").iterdir())) == 1
 
         sql = (package / "source/src/drift_kits.sql").read_text(encoding="utf-8")

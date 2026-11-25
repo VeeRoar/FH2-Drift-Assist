@@ -255,7 +255,7 @@ static float correct_steering(float stick,float dt,AssistConfig c,void *expected
                 if(supported)
                     rack_update(&manual_state,stick,forward,lateral,out.yaw,state.slip_rate,geometry,limit,dt,measured*57.29578f,c);
                 else
-                    rack_unsupported(&manual_state,stick,limit,dt,measured*57.29578f,c);
+                    rack_unsupported(&manual_state,stick,limit,dt,measured*57.29578f,c,hypotf(lateral,forward));
                 neutral=manual_state.neutral;hand=manual_state.hand;
                 front_flow=manual_state.front_flow;window_mix=manual_state.window_mix;
                 rack_command=manual_state.angle;rack_target=manual_state.target;direct=1;
@@ -421,7 +421,7 @@ FH2MOD_EXPORT int fh2mod_init(const FH2ModApi* a){
                          a->add_translation && a->tr;
     chinese=supports_catalog?0:chinese_ui();
     FH2ModInfo info={0};
-    info.size=sizeof(info);info.name="FH2 Drift Assist";info.version="0.5.2";info.platform_version="2.6.0";
+    info.size=sizeof(info);info.name="FH2 Drift Assist";info.version="0.5.2-arcade1";info.platform_version="2.6.0";
     info.description=menu_text(&Description);
     mod=api->register_mod(&info);if(!mod)return 1;
     if(supports_catalog){

@@ -1,5 +1,6 @@
 /* Offline fixture: only game-owned car lookup, contact lookup and module
    presence are substituted. Both input callbacks and wheel solver run as built. */
+#undef NDEBUG
 #include <assert.h>
 #include <stdlib.h>
 static unsigned char *car, *body;
@@ -16,6 +17,7 @@ static void putf(void *address,float value){memcpy(address,&value,sizeof(value))
 static unsigned char *manager,*pad,*sim;
 static FH2Context early,axis,solver;
 static float wheels[2];
+enum { seconds_to_settle = 4, fixture_hz = 60, settled_frames = seconds_to_settle * fixture_hz };
 static void late(float value, unsigned char **vehicle){
     axis.rsi=(uintptr_t)vehicle;axis.xmm[0].f[0]=value;
     on_keyboard_axis(&axis,NULL);
@@ -29,6 +31,28 @@ static void frames(int count,float stick,float merged){
     for(int i=0;i<count;i++){
         putf(pad+0xa0,stick);
         on_input(&early,NULL);late(merged,&car);solve();
+    }
+}
+/* Verify the speed and remapped input passed to the unsupported-wheel
+   controller, then compare the resulting command to the physical wheels. */
+static void check_airborne_input(float lateral,float forward,float stick){
+    putf(body-0x350,lateral);
+    putf(body-0x350+8,forward);
+    contacts=0;
+    float speed=hypotf(lateral,forward);
+    float measured=0;
+    memcpy(&measured,body+8,sizeof(measured));
+    WheelBinding *binding=*wheel_binding((uintptr_t)body);
+    assert(binding && manual_state.valid);
+    DirectRack expected=manual_state;
+    for(int i=0;i<12;i++){
+        rack_unsupported(&expected,stick,binding->limit,early.xmm[12].f[0],
+                         measured*57.29578f,config,speed);
+        frames(1,0,stick);
+        assert(fabsf(expected.angle-manual_state.angle)<.001f);
+        assert(fabsf(expected.target-manual_state.target)<.001f);
+        float inside=fabsf(wheels[0])>fabsf(wheels[1])?wheels[0]:wheels[1];
+        assert(fabsf(inside-expected.angle*.01745329252f)<.0001f);
     }
 }
 static const float original_cockpit_angle=-.314159f;
@@ -158,7 +182,7 @@ static void verify_stops(int id,int level,float limit,float filtered){
     assert(!manual_state.valid && !!player_wheel_pose((uintptr_t)body)==(level==5 || level==6));
     if(level!=5 && level!=6)expect_native();
     for(int side=-1;side<=1;side+=2){
-        frames(30,0,(float)side);
+        frames(settled_frames,0,(float)side);
         assert(manual_state.valid && fabsf(manual_state.angle-side*limit)<.01f);
         assert(fabsf(fmaxf(wheels[0]*side,wheels[1]*side)-rad*limit)<.001f);
         assert(wheels[0]*side>0 && wheels[1]*side>0);
@@ -190,16 +214,16 @@ int main(int argc,char **argv){
     early.xmm[12].f[0]=1.f/60;axis.rdi=(uintptr_t)pad;solver.rdi=(uintptr_t)body;solver.xmm[8].f[0]=2.6f;
     config=assist_defaults();keyboard_hook=1;lock_ready=1;check_equipped_row();
 
-    frames(30,0,-1);assert(wheels[0]<-1 && wheels[1]<-1);
-    frames(30,0,1);assert(wheels[0]>1 && wheels[1]>1);
+    frames(settled_frames,0,-1);assert(wheels[0]<-1 && wheels[1]<-1);
+    frames(settled_frames,0,1);assert(wheels[0]>1 && wheels[1]>1);
     check_cockpit_samples();
-    frames(60,0,0);assert(fabsf(wheels[0])<.001f && fabsf(wheels[1])<.001f);
+    frames(settled_frames,0,0);assert(fabsf(wheels[0])<.001f && fabsf(wheels[1])<.001f);
     check_cockpit(car,0);
-    putp(manager+0xab28,NULL);frames(30,0,-1);assert(wheels[0]<-1 && wheels[1]<-1);
+    putp(manager+0xab28,NULL);frames(settled_frames,0,-1);assert(wheels[0]<-1 && wheels[1]<-1);
     puts("PASS keyboard alone: left, reversal, release and no selected pad");
 
     putp(manager+0xab28,pad);pad[4]=1;putp(pad+0x60,game);
-    frames(30,0,1);assert(wheels[0]>1 && wheels[1]>1);
+    frames(settled_frames,0,1);assert(wheels[0]>1 && wheels[1]>1);
     frames(30,-.3f,.7f);assert(manual_state.target>45 && manual_state.target<55);
     frames(30,-.3f,-.3f);assert(manual_state.target<-18 && manual_state.target>-22);
     on_input(&early,NULL);unsigned char *other=calloc(1,0x5000);assert(other);putp(other,base+0x2c5cb80);
@@ -210,7 +234,7 @@ int main(int argc,char **argv){
     putf(pad+0xa0,.5f);on_input(&early,NULL);on_input(&early,NULL);
     assert(keyboard_frame==AXIS_PROBE && manual_state.target>30);
     once=manual_state.angle;late(-1,&car);assert(manual_state.angle==once);
-    frames(30,0,-1);assert(wheels[0]<-1 && wheels[1]<-1);
+    frames(settled_frames,0,-1);assert(wheels[0]<-1 && wheels[1]<-1);
     mouse_loaded=0;frames(30,.5f,0);assert(manual_state.target>30 && keyboard_frame==AXIS_IDLE);
     puts("PASS physical pad fallback and recovery of merged input");
 
@@ -243,6 +267,8 @@ int main(int argc,char **argv){
     float landing=manual_state.angle;
     contacts=4;putf(body-0x350,0);putf(body-0x350+8,15);frames(1,0,0);
     assert(manual_state.valid && fabsf(manual_state.angle-landing)<560.f/60+.01f);
+    check_airborne_input(3,4,.7f);
+    check_airborne_input(-12,16,-.7f);
     puts("PASS two/one/zero-wheel contact, prolonged jump, mid-air input and bounded landing on both front wheels");
     contacts=4;frames(30,0,1);assert(manual_state.valid);
     sim[0x28]=1;frames(3,0,-1);assert(!manual_state.valid);
@@ -275,7 +301,7 @@ int main(int argc,char **argv){
     check_cockpit(other,original_cockpit_angle);
     body=second;solver.rdi=(uintptr_t)body;expect_native();
     render.rsi=(uintptr_t)other;visual_route(&render,NULL);assert(!render.rflags);
-    car=other;frames(30,0,1);assert(manual_body==second && manual_state.angle>35.9f);
+    car=other;frames(settled_frames,0,1);assert(manual_body==second && manual_state.angle>35.9f);
     check_cockpit(first_car,original_cockpit_angle);
     check_cockpit(other,1.570796327f);
     render.rsi=(uintptr_t)first_car;visual_route(&render,NULL);assert(!render.rflags);
@@ -283,22 +309,24 @@ int main(int argc,char **argv){
     FH2Context destroy={0};destroy.rcx=(uintptr_t)second-0x3a0;
     unbind_wheels(&destroy,NULL);assert(!*wheel_binding((uintptr_t)second) && !manual_state.valid);
     check_cockpit(other,original_cockpit_angle);
-    car=first_car;frames(30,0,-1);assert(manual_body==first && manual_state.angle<-53);
+    car=first_car;frames(settled_frames,0,-1);assert(manual_body==first && manual_state.angle<-53);
     puts("PASS simultaneous player and AI, garage switch, reused physics and vehicle release");
 
-    frames(60,0,0);
+    frames(settled_frames,0,0);
     slid(NULL,"SteeringSpeed",.5f);frames(1,0,1);float slow_angle=manual_state.angle;
-    frames(60,0,0);slid(NULL,"SteeringSpeed",1.5f);frames(1,0,1);
+    frames(settled_frames,0,0);slid(NULL,"SteeringSpeed",1.5f);frames(1,0,1);
     assert(manual_state.angle>slow_angle*2);
-    frames(60,0,1);slid(NULL,"ReleaseSpeed",.5f);frames(1,0,0);float slow_return=manual_state.angle;
-    frames(60,0,1);slid(NULL,"ReleaseSpeed",1.5f);frames(1,0,0);assert(manual_state.angle<slow_return-8);
+    frames(settled_frames,0,1);float held=manual_state.angle;
+    slid(NULL,"ReleaseSpeed",.5f);frames(1,0,0);float slow_drop=held-manual_state.angle;
+    frames(settled_frames,0,1);assert(fabsf(manual_state.angle-held)<.001f);
+    slid(NULL,"ReleaseSpeed",1.5f);frames(1,0,0);assert(slow_drop>0 && held-manual_state.angle>2*slow_drop);
     putf(body-0x350+8,20);slid(NULL,"FrontSlipDegrees",4);frames(60,0,1);
     assert(fabsf(manual_state.target-4)<.01f);
     slid(NULL,"FrontSlipDegrees",24);frames(60,0,1);assert(fabsf(manual_state.target-24)<.01f);
     assert(fmaxf(wheels[0],wheels[1])>.41f);putf(body-0x350+8,0);
     slid(NULL,"Deadzone",.15f);
     for(int side=-1;side<=1;side+=2){
-        frames(60,side*.08f,side*.08f);
+        frames(settled_frames,side*.08f,side*.08f);
         assert(fabsf(wheels[0])<.001f && fabsf(wheels[1])<.001f);
         frames(60,0,side);
         assert(wheels[0]*side>.8f && wheels[1]*side>.8f);

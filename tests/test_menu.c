@@ -21,7 +21,7 @@ static const char *catalog,*description;
 static void *game(void){return NULL;}
 static void *code(uint32_t unused){(void)unused;return NULL;}
 static FH2Mod *reg(const FH2ModInfo *info){
-    assert(!strcmp(info->version,"0.5.2"));
+    assert(!strcmp(info->version,"0.5.2-arcade1"));
     description=info->description;return (FH2Mod*)1;
 }
 static int language(FH2Mod *mod,const char *tag,const char *data,size_t size){
@@ -70,8 +70,8 @@ static void check_text(const char *value,const char *key){
 int main(int argc,char **argv){
     assert(argc==5);
     zh=!strcmp(argv[2],"zh");official=!strcmp(argv[3],"10");
-    wchar_t dir[MAX_PATH];GetCurrentDirectoryW(MAX_PATH,dir);
-    FH2ModApi api={0};api.size=sizeof(api);api.api_version=official?10:8;
+    static wchar_t dir[MAX_PATH];GetCurrentDirectoryW(MAX_PATH,dir);
+    static FH2ModApi api;api.size=sizeof(api);api.api_version=official?10:8;
     api.azimuth_dir=dir;api.register_mod=reg;api.game_base=game;api.wait_for_code=code;
     api.add_setting=add;api.add_sql=sql;api.log=logline;
     if(official){api.add_translation=language;api.tr=translate;api.set_mod_description=describe;}

@@ -1,5 +1,6 @@
 #include "../src/assist.h"
 #include "../src/direct_rack.h"
+#undef NDEBUG
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -13,7 +14,7 @@ static void sample(DirectRack *rack,float dt,float stick,float speed,float slip,
 }
 static float steady(float stick,float speed,float slip,float yaw,float rate,AssistConfig cfg,int hz){
     DirectRack rack={0};
-    for(int i=0;i<hz*2;i++)sample(&rack,1.f/hz,stick,speed,slip,yaw,rate,cfg);
+    for(int i=0;i<hz*4;i++)sample(&rack,1.f/hz,stick,speed,slip,yaw,rate,cfg);
     return rack.angle;
 }
 static void check_tuning(void){
@@ -25,10 +26,10 @@ static void check_tuning(void){
     a.angle=b.angle=60;
     slow.release_speed=.5f;fast.release_speed=1.5f;
     sample(&a,1.f/60,0,0,0,0,0,slow);sample(&b,1.f/60,0,0,0,0,0,fast);
-    assert(b.angle<a.angle-8 && a.target==0 && b.target==0);
+    assert(60-b.angle>2*(60-a.angle) && a.angle<60 && b.angle>0 && a.target==0 && b.target==0);
     /* Released response follows the current drift balance, including in the air. */
     a=b=(DirectRack){.angle=60,.neutral=30,.valid=1,.left_range=20,.right_range=20};
-    rack_unsupported(&a,0,74,1.f/60,0,slow);rack_unsupported(&b,0,74,1.f/60,0,fast);
+    rack_unsupported(&a,0,74,1.f/60,0,slow,20);rack_unsupported(&b,0,74,1.f/60,0,fast,20);
     assert(a.target==30 && b.target==30 && b.angle<a.angle && b.angle>=30);
     slow=settings;fast=settings;slow.front_slip_deg=4;fast.front_slip_deg=24;
     assert(fabsf(steady(1,25,0,0,0,slow,60)-4)<.01f);
@@ -41,11 +42,16 @@ static void check_tuning(void){
 static void scenarios(int hz){
     float dt=1.f/hz;
     DirectRack parked={0};
-    for(int i=0;i<hz;i++)sample(&parked,dt,1,0,0,0,0,settings);
+    for(int i=0;i<4*hz;i++)sample(&parked,dt,1,0,0,0,0,settings);
     assert(parked.angle>73.99f);
-    int frames=0;while(parked.angle>0 && frames<hz){sample(&parked,dt,-1,0,0,0,0,settings);frames++;}
-    assert(frames*dt>=.08f && frames*dt<=.125f);
-    for(int i=0;i<hz;i++)sample(&parked,dt,0,0,0,0,0,settings);
+    int frames=0;
+    while(parked.angle>0 && frames<4*hz){
+        float before=parked.angle;
+        sample(&parked,dt,-1,0,0,0,0,settings);frames++;
+        assert(parked.angle<=before+.001f);
+    }
+    assert(parked.angle<=0 && frames*dt>=.30f && frames*dt<=.40f);
+    for(int i=0;i<4*hz;i++)sample(&parked,dt,0,0,0,0,0,settings);
     assert(fabsf(parked.angle)<.001f);
     float growing=steady(0,20,40,-.8f,1,settings,hz),shrinking=steady(0,20,40,-.8f,-1,settings,hz);
     assert(growing>shrinking+10 && shrinking>0);
@@ -123,7 +129,7 @@ static void replay(const char *path){
         float before=rack.angle,left=number(line," leftDeg=");
         for(int i=0;i<steps;i++){
             if(supported)sample(&rack,(float)(elapsed/steps),stick,speed,slip,yaw,rate,settings);
-            else rack_unsupported(&rack,stick,74,(float)(elapsed/steps),before,settings);
+            else rack_unsupported(&rack,stick,74,(float)(elapsed/steps),before,settings,speed);
         }
         if(!supported){
             airborne++;

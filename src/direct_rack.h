@@ -8,6 +8,7 @@ typedef struct {
     float engagement,neutral,hand;
     float left_range,right_range;
     float front_flow,window_mix;
+    float yaw_magnitude;
 } DirectRack;
 static float rack_clip(float x,float lo,float hi){return fminf(hi,fmaxf(lo,x));}
 static float rack_blend(float v,float lo,float hi){
@@ -22,27 +23,40 @@ static float wheel_bound(float wheel_deg,int right_wheel,float curvature,float l
     float rack=atan2f(sinf(mag),cosf(mag)-curvature*sinf(mag))*57.29578f;
     return copysignf(fminf(rack,limit),a);
 }
-static void rack_drive(DirectRack *r,float stick,float limit,float dt,AssistConfig cfg){
+static void rack_drive(DirectRack *r,float stick,float limit,float dt,AssistConfig cfg,float ground_speed){
     float driver=copysignf(rack_clip((fabsf(stick)-cfg.deadzone)/(1.f-cfg.deadzone),0,1),stick);
     r->hand=driver*(driver<0?r->left_range:r->right_range);
     /* A stick returning through centre blends into the released response. */
     float speed=cfg.release_speed+(cfg.steering_speed-cfg.release_speed)*rack_blend(fabsf(driver),0,.15f);
-    float rate=(560.f+260.f*rack_blend(fabsf(driver),.15f,.85f))*speed;
+    /* CarX Combined has SteerSmoothK1=4, SteerSmoothK2=1. The native
+       rack limits the angular step against the previous angle. Use the
+       Forza body yaw for its rotation term; fade it in above 1 m/s. */
+    float slow_rate=(4.f+r->yaw_magnitude*rack_clip(ground_speed-1.f,0,1))*57.29578f;
+    float drift_rate=560.f+260.f*rack_blend(fabsf(driver),.15f,.85f);
+    float moving=rack_blend(ground_speed,6.f,9.f);
+    float slide=rack_blend(ground_speed,3.f,9.f)*r->engagement;
+    float quick=moving+(1.f-moving)*slide;
+    float rate=(slow_rate+(drift_rate-slow_rate)*quick)*speed;
+    /* Local pad calibration: 150 ms to half a small requested rack change
+       at rest. The target remains proportional to stick travel. As speed
+       rises, restore the response used by the original drift controller. */
+    const float parking_tau=.150f/.69314718f;
+    float tau=.024f+(parking_tau-.024f)*(1.f-quick);
     r->target=rack_clip(r->neutral+r->hand,-limit,limit);
-    float delta=(r->target-r->angle)*(-expm1f(-dt*speed/.024f));
+    float delta=(r->target-r->angle)*(-expm1f(-dt*speed/tau));
     r->angle+=rack_clip(delta,-rate*dt,rate*dt);
 }
 /* When support is lost there is no reliable contact-patch direction.
    Carry forward the last supported steering interval, including both
    directions of manual travel. Input and the physical rack remain live. */
-static void rack_unsupported(DirectRack *r,float stick,float limit,float dt,float measured,AssistConfig cfg){
+static void rack_unsupported(DirectRack *r,float stick,float limit,float dt,float measured,AssistConfig cfg,float ground_speed){
     if(!r->valid){
         r->valid=1;
         r->angle=rack_clip(measured,-limit,limit);
         r->neutral=0;
         r->left_range=r->right_range=limit;
     }
-    rack_drive(r,stick,limit,dt,cfg);
+    rack_drive(r,stick,limit,dt,cfg,ground_speed);
 }
 /* Angles are in degrees, yaw and sideslip rate in radians/s. The front
    axle distance is estimated from the wheelbase observed by the solver. */
@@ -52,9 +66,10 @@ static void rack_update(DirectRack *r,float stick,float forward,float lateral,
     if(!r->valid){r->angle=rack_clip(measured,-limit,limit);r->valid=1;}
     const float degrees=57.29578f;
     float speed=hypotf(lateral,forward);
+    r->yaw_magnitude=fabsf(yaw);
     float slip=atan2f(lateral,forward)*degrees;
     /* Keep the assisted hand range through a quick transition. Fade it out
-       on a genuine exit. Reverse and parking always use the full quick rack. */
+       on a genuine exit. Reverse and parking retain full steering travel. */
     float moving=rack_blend(speed,3,9);
     float facing=rack_blend(forward/fmaxf(speed,1),-.18f,.15f);
     float drift=moving*facing*rack_blend(fabsf(slip),5,20);
@@ -112,6 +127,6 @@ static void rack_update(DirectRack *r,float stick,float forward,float lateral,
         if(slip>0)r->right_range=fminf(r->right_range,catch_range);
         else r->left_range=fminf(r->left_range,catch_range);
     }
-    rack_drive(r,stick,limit,dt,cfg);
+    rack_drive(r,stick,limit,dt,cfg,speed);
 }
 #endif

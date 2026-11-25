@@ -5,7 +5,7 @@ from zipfile import ZipFile, ZIP_DEFLATED
 
 ROOT = Path(__file__).resolve().parent
 DIST = ROOT / "dist"
-ASSET = DIST / "FH2-Drift-Assist-0.5.2-win-x64.zip"
+ASSET = DIST / "FH2-Drift-Assist-0.6.0-win-x64.zip"
 
 
 def build():
@@ -16,8 +16,17 @@ def build():
     for folder, extensions in (("src", {".c", ".h", ".def", ".sql"}), ("installer", {".cs", ".xml"}),
                                ("tests", {".c", ".py"}), ("preset", {".ini"})):
         source.extend(sorted(p.relative_to(ROOT) for p in (ROOT / folder).rglob("*") if p.suffix in extensions))
+    animation = [Path("Animation") / name for name in
+                 ("AnimationSetup.cs", "setup.ps1", "manager.py", "scan_fh2.py", "known_fh2.json")]
+    animation.extend(sorted(p.relative_to(ROOT) for p in (ROOT / "Animation/converter").glob("*.py")))
+    if Path("Animation/converter/animator.py") not in animation:
+        raise FileNotFoundError("Missing animation converter source.")
+    source.extend(animation)
     with ZipFile(ASSET, "w", ZIP_DEFLATED, compresslevel=9) as z:
         z.write(DIST / "Install.exe", "Install.exe")
+        z.write(DIST / "AnimationSetup.exe", "Animation/AnimationSetup.exe")
+        for name in animation:
+            z.write(ROOT / name, name)
         for name in [*docs, *licenses]:
             z.write(ROOT / name, name)
         for name in source:

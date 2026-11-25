@@ -10,6 +10,8 @@ try {
     }
     $binary = (Resolve-Path -LiteralPath $Plugin).Path
     $compiler = Join-Path $env:WINDIR 'Microsoft.NET\Framework64\v4.0.30319\csc.exe'
+    & $compiler /nologo /optimize+ /platform:x64 /target:exe /codepage:65001 /r:System.Windows.Forms.dll /r:System.Web.Extensions.dll "/out:$out\AnimationSetup.exe" Animation\AnimationSetup.cs
+    if ($LASTEXITCODE) { throw 'Animation setup compilation failed.' }
     & $compiler /nologo /optimize+ /platform:x64 /target:exe /codepage:65001 /r:System.IO.Compression.dll /r:System.IO.Compression.FileSystem.dll /r:System.Windows.Forms.dll "/out:$out\Install.exe" "/resource:$binary,plugin" /resource:preset\FH2DriftAssist.ini,preset /resource:installer\Garage.xml,garage installer\Install.cs installer\GarageTable.cs
     if ($LASTEXITCODE) { throw 'Installer compilation failed.' }
     Write-Host "Built $out\Install.exe"
